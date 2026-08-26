@@ -1,5 +1,4 @@
 package in.sursandconnect.app;
-import android.app.Notification;
 import java.io.FileNotFoundException;
 import android.webkit.MimeTypeMap;
 import android.provider.OpenableColumns;
@@ -384,27 +383,6 @@ public class MainActivity extends Activity {
     }
 
     public class NativeBridge {
-
-        @JavascriptInterface
-        public void showStatusNotification(String title, String message) {
-            runOnUiThread(() -> {
-                try {
-                    String channelId = "sursand_connect_updates";
-                    NotificationManager nm = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-                    if (Build.VERSION.SDK_INT >= 26) {
-                        NotificationChannel ch = new NotificationChannel(channelId, "Sursand Connect Updates", NotificationManager.IMPORTANCE_DEFAULT);
-                        nm.createNotificationChannel(ch);
-                    }
-                    Notification.Builder nb = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(MainActivity.this, channelId) : new Notification.Builder(MainActivity.this);
-                    nb.setContentTitle(title == null ? "Sursand Connect" : title)
-                      .setContentText(message == null ? "New update available" : message)
-                      .setSmallIcon(android.R.drawable.ic_dialog_info)
-                      .setAutoCancel(true);
-                    nm.notify((int)(System.currentTimeMillis()%100000), nb.build());
-                } catch(Exception ignored) {}
-            });
-        }
-
         @JavascriptInterface
         public void share(String title, String text, String url) {
             runOnUiThread(() -> {

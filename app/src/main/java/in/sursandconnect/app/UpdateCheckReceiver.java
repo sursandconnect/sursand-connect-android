@@ -81,7 +81,7 @@ public class UpdateCheckReceiver extends BroadcastReceiver {
         for (JSONArray arr : arrays) {
             if (arr == null) continue;
             for (int i=0;i<arr.length();i++) {
-                JSONObject o = arr.optJSONObject(i); if (o == null || expired(o)) continue;
+                JSONObject o = arr.optJSONObject(i); if (o == null || expired(o) || notStarted(o)) continue;
                 long t = parseTime(first(o,"Created At","Date","Event Date","Timestamp","Start Date"));
                 if (best == null || t >= bestTime) { best = o; bestTime = t; }
             }
@@ -90,13 +90,23 @@ public class UpdateCheckReceiver extends BroadcastReceiver {
     }
 
     private boolean expired(JSONObject o) {
-        String end=first(o,"End Date");
-        if(end.isEmpty()) return false;
+        String end = first(o, "End Date");
+        if (end.isEmpty()) return false;
         try {
-            java.text.SimpleDateFormat f=new java.text.SimpleDateFormat("yyyy-MM-dd",java.util.Locale.US);
-            java.util.Date d=f.parse(end.substring(0,Math.min(10,end.length())));
-            return d!=null && d.getTime()+86399999L<System.currentTimeMillis();
-        } catch(Exception e){ return false; }
+            java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+            java.util.Date d = f.parse(end.substring(0, Math.min(10, end.length())));
+            return d != null && d.getTime() + 86399999L < System.currentTimeMillis();
+        } catch (Exception e) { return false; }
+    }
+
+    private boolean notStarted(JSONObject o) {
+        String start = first(o, "Start Date");
+        if (start.isEmpty()) return false;
+        try {
+            java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+            java.util.Date d = f.parse(start.substring(0, Math.min(10, start.length())));
+            return d != null && d.getTime() > System.currentTimeMillis();
+        } catch (Exception e) { return false; }
     }
 
     private String first(JSONObject o, String... keys) {
