@@ -129,13 +129,17 @@ public class MainActivity extends Activity {
         s.setAllowContentAccess(true);
         s.setLoadsImagesAutomatically(true);
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setCacheMode(WebSettings.LOAD_DEFAULT);
+        s.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         s.setUserAgentString(s.getUserAgentString() + " SursandConnectAndroid/1.0");
 
         webView.addJavascriptInterface(new NativeBridge(), "SursandNative");
 
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onReceivedError(WebView view, android.webkit.WebResourceRequest request, android.webkit.WebResourceError error) { if (request != null && request.isForMainFrame()) showFriendlyOffline(view); }
+            @Override
+            public void onReceivedHttpError(WebView view, android.webkit.WebResourceRequest request, android.webkit.WebResourceResponse errorResponse) { if (request != null && request.isForMainFrame() && errorResponse != null && errorResponse.getStatusCode() >= 400) showFriendlyOffline(view); }
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 return handleUri(request.getUrl());
@@ -154,10 +158,6 @@ public class MainActivity extends Activity {
                 view.evaluateJavascript("if(navigator.serviceWorker){navigator.serviceWorker.getRegistrations().then(r=>r.forEach(x=>x.update())).catch(()=>{});}", null);
             }
 
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame()) showOfflinePage();
-            }
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
@@ -312,10 +312,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void showOfflinePage() {
-        String html = "<html><head><meta name='viewport' content='width=device-width,initial-scale=1'></head><body style='margin:0;background:#f8fafc;font-family:Arial;color:#263238;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px'><div style='max-width:420px;text-align:center;background:#fff;border-radius:24px;padding:28px;box-shadow:0 18px 45px rgba(15,23,42,.12)'><div style='width:76px;height:76px;border-radius:24px;background:#f28c28;color:#fff;margin:auto;display:flex;align-items:center;justify-content:center;font-size:27px;font-weight:900'>SC</div><h2>Sursand Connect</h2><p style='color:#667085;line-height:1.6'>You appear to be offline. Previously cached pages remain available when possible.</p><button onclick=\"location.href='" + APP_URL + "'\" style='border:0;border-radius:12px;background:#238b45;color:white;padding:12px 22px;font-weight:800'>Try Again</button></div></body></html>";
-        webView.loadDataWithBaseURL(APP_URL, html, "text/html", "UTF-8", null);
-    }
+    private void showOfflinePage() {String html = "<html><meta name='viewport' content='width=device-width,initial-scale=1'><body style='font-family:Arial;background:#f5f8f6;text-align:center;padding:70px 22px;color:#263238'><div style='font-size:44px'>📶</div><h2>Sursand Connect</h2><p>Connection is temporarily unavailable. Saved pages and images remain available when cached on this device.</p><button onclick=\"SursandNative.reloadHome()\" style='border:0;border-radius:12px;background:#238b45;color:white;padding:12px 22px;font-weight:bold'>Try Again</button></body></html>";webView.loadDataWithBaseURL("https://app.sursandconnect.in/",html,"text/html","UTF-8",null);}
 
     private void injectNativeHelpers() {
         String js =
@@ -383,6 +380,9 @@ public class MainActivity extends Activity {
     }
 
     public class NativeBridge {
+        @android.webkit.JavascriptInterface
+        public void reloadHome(){runOnUiThread(() -> webView.loadUrl(APP_URL));}
+
         @JavascriptInterface
         public void share(String title, String text, String url) {
             runOnUiThread(() -> {
@@ -467,4 +467,6 @@ public class MainActivity extends Activity {
         webView.saveState(outState);
         super.onSaveInstanceState(outState);
     }
+    private void showFriendlyOffline(final WebView view) { final String html = "<html><meta name='viewport' content='width=device-width,initial-scale=1'><body style='font-family:Arial;background:#f5f8f6;text-align:center;padding:70px 22px;color:#263238'><div style='font-size:44px'>📶</div><h2>Sursand Connect</h2><p>Internet connection is unavailable. Previously loaded information may still be available offline.</p><button onclick=\"location.reload()\" style='border:0;border-radius:12px;background:#238b45;color:white;padding:12px 22px;font-weight:bold'>Try Again</button></body></html>"; view.post(() -> view.loadDataWithBaseURL("https://app.sursandconnect.in/", html, "text/html", "UTF-8", null)); }
+
 }
