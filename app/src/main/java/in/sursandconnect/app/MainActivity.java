@@ -55,6 +55,7 @@ import java.util.Locale;
 public class MainActivity extends Activity {
     private static final String APP_URL = "https://sursandconnect.github.io/sursand-connect-app/";
     private static final String INTERNAL_HOST = "sursandconnect.github.io";
+    private String lastRequestedUrl = APP_URL;
     private static final int REQ_LOCATION = 2001;
     private static final int REQ_CAMERA = 2002;
     private static final int REQ_NOTIFICATION = 2003;
@@ -147,6 +148,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                if(url!=null && (url.startsWith("http://")||url.startsWith("https://"))) lastRequestedUrl=url;
                 progress.setVisibility(View.VISIBLE);
             }
 
@@ -161,6 +163,17 @@ public class MainActivity extends Activity {
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onJsAlert(WebView view, String url, String message, android.webkit.JsResult result) {
+                new android.app.AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Sursand Connect")
+                    .setMessage(message == null ? "" : message.replaceAll("(?i).*github[^\\s]*", ""))
+                    .setPositiveButton("OK", (d,w) -> result.confirm())
+                    .setOnCancelListener(d -> result.cancel())
+                    .show();
+                return true;
+            }
+
             @Override
             public void onProgressChanged(WebView view, int newProgress) {
                 progress.setProgress(newProgress);
@@ -312,7 +325,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void showOfflinePage() {String html = "<html><meta name='viewport' content='width=device-width,initial-scale=1'><body style='font-family:Arial;background:#f5f8f6;text-align:center;padding:70px 22px;color:#263238'><div style='font-size:44px'>📶</div><h2>Sursand Connect</h2><p>Connection is temporarily unavailable. Saved pages and images remain available when cached on this device.</p><button onclick=\"SursandNative.reloadHome()\" style='border:0;border-radius:12px;background:#238b45;color:white;padding:12px 22px;font-weight:bold'>Try Again</button></body></html>";webView.loadDataWithBaseURL("https://app.sursandconnect.in/",html,"text/html","UTF-8",null);}
+    private void showOfflinePage() {String html = "<html><meta name='viewport' content='width=device-width,initial-scale=1'><body style='font-family:Arial;background:#f5f8f6;text-align:center;padding:70px 22px;color:#263238'><div style='font-size:44px'>📶</div><h2>Sursand Connect</h2><p>Connection is temporarily unavailable. Saved pages and images remain available when cached on this device.</p><button onclick=\"SursandNative.reloadHome()\" style='border:0;border-radius:12px;background:#238b45;color:white;padding:12px 22px;font-weight:bold'>Try Again</button></body></html>";webView.loadDataWithBaseURL("about:blank",html,"text/html","UTF-8",null);}
 
     private void injectNativeHelpers() {
         String js =
@@ -381,7 +394,7 @@ public class MainActivity extends Activity {
 
     public class NativeBridge {
         @android.webkit.JavascriptInterface
-        public void reloadHome(){runOnUiThread(() -> webView.loadUrl(APP_URL));}
+        public void reloadHome(){runOnUiThread(() -> webView.loadUrl(lastRequestedUrl==null||lastRequestedUrl.isEmpty()?APP_URL:lastRequestedUrl));}
 
         @JavascriptInterface
         public void share(String title, String text, String url) {
@@ -467,6 +480,6 @@ public class MainActivity extends Activity {
         webView.saveState(outState);
         super.onSaveInstanceState(outState);
     }
-    private void showFriendlyOffline(final WebView view) { final String html = "<html><meta name='viewport' content='width=device-width,initial-scale=1'><body style='font-family:Arial;background:#f5f8f6;text-align:center;padding:70px 22px;color:#263238'><div style='font-size:44px'>📶</div><h2>Sursand Connect</h2><p>Internet connection is unavailable. Previously loaded information may still be available offline.</p><button onclick=\"location.reload()\" style='border:0;border-radius:12px;background:#238b45;color:white;padding:12px 22px;font-weight:bold'>Try Again</button></body></html>"; view.post(() -> view.loadDataWithBaseURL("https://app.sursandconnect.in/", html, "text/html", "UTF-8", null)); }
+    private void showFriendlyOffline(final WebView view) { final String html = "<html><meta name='viewport' content='width=device-width,initial-scale=1'><body style='font-family:Arial;background:#f5f8f6;text-align:center;padding:70px 22px;color:#263238'><div style='font-size:44px'>📶</div><h2>Sursand Connect</h2><p>Internet connection is unavailable. Previously loaded information may still be available offline.</p><button onclick=\"SursandNative.reloadHome()\" style='border:0;border-radius:12px;background:#238b45;color:white;padding:12px 22px;font-weight:bold'>Try Again</button></body></html>"; view.post(() -> view.loadDataWithBaseURL("about:blank", html, "text/html", "UTF-8", null)); }
 
 }
