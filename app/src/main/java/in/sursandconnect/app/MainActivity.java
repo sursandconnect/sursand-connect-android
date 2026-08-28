@@ -39,6 +39,7 @@ import android.view.WindowInsets;
 import android.webkit.DownloadListener;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
+import android.webkit.JsResult;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -129,7 +130,7 @@ public class MainActivity extends Activity {
         s.setAllowContentAccess(true);
         s.setLoadsImagesAutomatically(true);
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+        s.setCacheMode(WebSettings.LOAD_DEFAULT);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         s.setUserAgentString(s.getUserAgentString() + " SursandConnectAndroid/1.0");
 
@@ -154,13 +155,22 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 progress.setVisibility(View.GONE);
                 injectNativeHelpers();
-                // Encourage the existing web service worker to refresh without exposing hosting details.
-                view.evaluateJavascript("if(navigator.serviceWorker){navigator.serviceWorker.getRegistrations().then(r=>r.forEach(x=>x.update())).catch(()=>{});}", null);
             }
 
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
+                new android.app.AlertDialog.Builder(MainActivity.this).setTitle("Sursand Connect").setMessage(message == null ? "" : message).setPositiveButton("OK", (d, w) -> result.confirm()).setOnCancelListener(d -> result.cancel()).show();
+                return true;
+            }
+            @Override
+            public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
+                new android.app.AlertDialog.Builder(MainActivity.this).setTitle("Sursand Connect").setMessage(message == null ? "" : message).setPositiveButton("OK", (d, w) -> result.confirm()).setNegativeButton("Cancel", (d, w) -> result.cancel()).setOnCancelListener(d -> result.cancel()).show();
+                return true;
+            }
+
             @Override
             public void onProgressChanged(WebView view, int newProgress) {
                 progress.setProgress(newProgress);
